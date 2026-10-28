@@ -1,0 +1,6 @@
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: #ecebe7; }
+body { margin: 0; background: #ecebe7; color: #38450f; font-family: "Roundo", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+img, svg { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:target { scroll-margin-top: 6rem; }

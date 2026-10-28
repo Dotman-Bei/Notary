@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# design-skill working files (screenshots, inspection reports) and local tooling
+.taste-skill/
+.claude/

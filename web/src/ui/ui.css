@@ -1,0 +1,101 @@
+/* The product's own interface: app tokens, pills, hashes. Used by the app screens and by every
+   [data-ui] fragment on the landing page, so the page shows the real product, not a drawing of it. */
+.app, .ui {
+  --ground: #f4f3f1;
+  --surface: #ffffff;
+  --raised: #f9f8f5;
+  --active: #e9e8e2;
+  --border: #e6e4dd;
+  --rule: #efede8;
+  --control: #cfcdc4;
+  --text: #1c2109;
+  --muted: #585c4b;
+  --faint: #6b6e61;
+  --primary: #1c2109;
+  --data: #5f7a1a;
+  --negative: #b4232a;
+  --pill-true-bg: #e9efd9;  --pill-true-ink: #2c3a08;
+  --pill-false-bg: #ffedea; --pill-false-ink: #831c1e;
+  --pill-sealed-bg: #ecebe6; --pill-sealed-ink: #3b3e33;
+  --pill-warning-bg: #fffbeb; --pill-warning-ink: #92400e;
+  --grid: #e7e5df;
+  --radius-card: 8px; --radius-control: 6px;
+  --font: "Roundo", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace; /* taste-skill-ignore: hashes and addresses only */
+  --seal-cut: #ffffff;
+}
+
+.mono { font-family: var(--mono); font-size: 0.92em; letter-spacing: 0; font-variant-ligatures: none; } /* taste-skill-ignore: hashes and addresses only */
+.num { font-variant-numeric: tabular-nums; }
+.ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pill {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px;
+  border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 1; white-space: nowrap;
+}
+.pill svg { flex: none; }
+.pill-true { background: var(--pill-true-bg); color: var(--pill-true-ink); }
+.pill-false { background: var(--pill-false-bg); color: var(--pill-false-ink); }
+.pill-sealed { background: var(--pill-sealed-bg); color: var(--pill-sealed-ink); }
+.pill-draft { background: var(--active); color: var(--muted); }
+
+/* ---------- a fragment of the app, on the landing page ---------- */
+.ui {
+  font-family: var(--font); font-size: 14px; line-height: 20px; color: var(--text);
+  background: var(--surface); border-radius: var(--radius-card); padding: 20px; text-align: left;
+}
+.ui .muted { color: var(--muted); }
+.ui-head { display: flex; align-items: center; gap: 10px; min-height: 28px; margin-bottom: 16px; flex-wrap: wrap; }
+.ui-head strong { font-weight: 600; font-size: 16px; }
+.ui-head-end { margin-left: auto; display: flex; gap: 8px; }
+.ui-mark { color: var(--text); flex: none; }
+.ui-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.ui-input {
+  display: block; width: 100%; resize: none; padding: 10px 12px; border: 1px solid var(--control); /* taste-skill-ignore: a real form field */
+  border-radius: var(--radius-control); background: var(--surface); font: 500 15px/22px var(--font); color: var(--text);
+}
+.ui-input:disabled { background: var(--raised); color: var(--muted); }
+.ui-input:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.ui-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 16px 0; }
+.ui-kv dt { font-size: 12px; color: var(--muted); }
+.ui-kv dd { margin: 2px 0 0; }
+.ui-kv-rows { grid-template-columns: 1fr; gap: 0; margin: 0; }
+.ui-kv-rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid var(--rule); } /* taste-skill-ignore: product UI row rules */
+.ui-kv-rows dd { margin: 0; text-align: right; }
+.ui-hash { padding: 12px 14px; background: var(--raised); border-radius: var(--radius-control); }
+.ui-hash output { display: block; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.ui-note { display: block; margin-top: 6px; font-size: 12px; color: var(--pill-true-ink); }
+.ui-note.is-bad { color: var(--negative); }
+.ui-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 16px; }
+.ui-msg { flex: 1 1 220px; margin: 0; font-size: 13px; color: var(--muted); }
+.ui-btn {
+  height: 36px; padding: 0 14px; border-radius: var(--radius-control); font: 500 14px var(--font);
+  background: #e5e5e0; color: var(--text); cursor: pointer; border: 0;
+  transition: transform 140ms cubic-bezier(.22,1,.36,1), background-color 180ms ease;
+}
+.ui-btn:active { transform: scale(0.97); }
+.ui-btn-primary { background: var(--primary); color: #fff; }
+.ui-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .ui-btn:hover { background: #d9d9d3; }
+  .ui-btn-primary:hover { background: #343c1a; }
+}
+.ui-chain { list-style: none; margin: 18px -20px 0; padding: 0 20px; }
+.ui-chain li {
+  display: grid; grid-template-columns: 14px 34px minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  height: 44px; border-top: 1px solid var(--rule); /* taste-skill-ignore: product UI row rules */
+}
+.ui-chain svg { color: var(--data); }
+.ui-claim { margin: 0 0 14px; font-size: 16px; line-height: 24px; font-weight: 500; }
+.ui-claim.is-hidden { color: var(--muted); font-weight: 400; }
+.ui-figure { margin: 4px 0 0; font-size: 32px; line-height: 40px; font-weight: 500; letter-spacing: -0.02em; color: var(--text); }
+.ui-sub { margin: 0 0 14px; color: var(--muted); }
+.ui-prev { margin-top: 14px; padding: 12px 14px; background: var(--raised); border-radius: var(--radius-control); }
+.ui-prev p { margin: 0 0 8px; font-weight: 500; }
+
+.record-strip { list-style: none; margin: 0 0 14px; padding: 0; display: flex; gap: 3px; flex-wrap: wrap; }
+.record-strip li { width: 12px; height: 12px; }
+.rs-true { color: var(--data); }
+.rs-false { color: #8a8d7e; --seal-cut: var(--surface); }
+.rs-sealed { color: #a3a596; }
+.pill-warning { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
