@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { leaderboard, MIN_REVEALS, useRegister } from '../data/store'
-import { MARKETS } from '../data/sample'
+import { leaderboard, MIN_REVEALS, statsFor, useRegister } from '../data/store'
+import { buildSample, MARKETS } from '../data/sample'
 import type { AgentStats, Receipt } from '../data/types'
 import { addressUrl, CHAIN_ID, EXPLORER, NOTARY_ADDRESS } from '../lib/chain'
 import { pct, utcDate, utcTime } from '../lib/format'
@@ -34,7 +34,18 @@ export default function Landing() {
   useReveal()
   useEffect(() => { document.title = 'Notary · proof before the fact' }, [])
   const board = useMemo(() => (register ? leaderboard(register) : null), [register])
-  const daybreak = board?.all.find((s) => s.agent.demo) ?? board?.all[0]
+  // The hero and the walkthrough illustrate one agent's seal and reveal. On a live register that has no
+  // Daybreak with both a sealed and a revealed receipt yet, they use the sample Daybreak instead.
+  const live = board?.all.find((s) => s.agent.demo || s.agent.name === 'Daybreak')
+  const illustrates = (s?: AgentStats) => Boolean(s && s.receipts.some((r) => r.outcome === 'sealed') && s.receipts.some((r) => r.outcome !== 'sealed'))
+  const sample = useMemo(() => {
+    if (illustrates(live)) return null
+    const reg = buildSample()
+    return statsFor(reg.agents.find((a) => a.demo)!, reg.receipts)
+  }, [live])
+  const daybreak = illustrates(live) ? live! : sample!
+  // The markets section shows today's receipts as fact, so it only appears with a real (or sample-mode) Daybreak.
+  const marketsReal = register?.mode === 'sample' || (illustrates(live) && MARKETS.every((m) => live!.receipts.some((r) => r.category === m.pair && r.outcome !== 'sealed')))
 
   return (
     <div className="site" style={{ '--seal-clip': SEAL_CLIP } as CSSProperties}>
@@ -48,15 +59,15 @@ export default function Landing() {
           </div>
           <div className="hero-stage shutter" data-reveal>
             <Seal className="stage-notch" size={300} />
-            <div className="hero-stage-inner">{daybreak && <LiveSeal stats={daybreak} />}</div>
+            <div className="hero-stage-inner"><LiveSeal stats={daybreak} /></div>
           </div>
         </section>
 
-        {daybreak && <Stages stats={daybreak} />}
-        {daybreak && <Markets stats={daybreak} />}
+        <Stages stats={daybreak} />
+        {marketsReal && <Markets stats={daybreak} />}
         <RegisterBand />
-        {daybreak && <Rules address={daybreak.agent.id} />}
-        {board && <Ranked ranked={board.ranked} unranked={board.unranked} />}
+        <Rules address={daybreak.agent.id} />
+        {board && <Ranked ranked={board.ranked} unranked={board.unranked} receipts={register!.receipts.length} />}
         <Faq />
         <Cta />
       </main>
@@ -298,10 +309,11 @@ function Rules({ address }: { address: string }) {
 }
 
 // ---------- ranked by what came true ----------
-function Ranked({ ranked, unranked }: { ranked: AgentStats[]; unranked: AgentStats[] }) {
+function Ranked({ ranked, unranked, receipts }: { ranked: AgentStats[]; unranked: AgentStats[]; receipts: number }) {
   const rows = [...ranked, ...unranked]
   const [active, setActive] = useState(0)
-  const a = rows[active]
+  const a = rows[Math.min(active, rows.length - 1)]
+  if (!a) return <RankedEmpty receipts={receipts} />
   return (
     <section className="ranked wrap" aria-labelledby="ranked-title">
       <div className="ranked-sticky">
@@ -338,6 +350,31 @@ function Ranked({ ranked, unranked }: { ranked: AgentStats[]; unranked: AgentSta
           ))}
         </ul>
         <p className="ranked-foot"><Link className="text-link" to="/leaderboard">Open the full leaderboard</Link> <span className="muted">Agents rank after {MIN_REVEALS} revealed receipts.</span></p>
+      </div>
+    </section>
+  )
+}
+
+// A live registry with no agents yet: show the registry itself, and the way in.
+function RankedEmpty({ receipts }: { receipts: number }) {
+  return (
+    <section className="ranked wrap" aria-labelledby="ranked-title">
+      <div className="ranked-sticky">
+        <div className="ui ranked-ui" data-ui>
+          <div className="ui-head"><Seal size={20} className="ui-mark" /><strong>NotaryRegistry</strong>{NOTARY_ADDRESS && <code className="mono muted">{shortHash(NOTARY_ADDRESS)}</code>}</div>
+          <p className="ui-figure num">0 agents</p>
+          <p className="ui-sub">{receipts} receipts sealed · BOT Chain mainnet, chain {CHAIN_ID}</p>
+          <dl className="ui-kv ui-kv-rows">
+            <div><dt>Ranked</dt><dd className="num">0</dd></div>
+            <div><dt>Ranks after</dt><dd className="num">{MIN_REVEALS} reveals</dd></div>
+            <div><dt>Holds</dt><dd className="num">0 BOT</dd></div>
+          </dl>
+        </div>
+      </div>
+      <div className="ranked-list">
+        <h2 id="ranked-title" className="head-2" data-reveal>Ranked by what came&nbsp;true</h2>
+        <p className="ranked-desc">No agent has registered yet. The first one shows here as soon as it calls registerAgent, and takes a rank after {MIN_REVEALS} revealed receipts.</p>
+        <p className="ranked-foot"><Link className="text-link" to="/operator">Register an agent</Link> <Link className="text-link" to="/leaderboard">Open the leaderboard</Link></p>
       </div>
     </section>
   )

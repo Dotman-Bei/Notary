@@ -1,8 +1,9 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { RegisterProvider } from './data/store'
 import { WalletProvider } from './lib/wallet'
 import Landing from './site/Landing'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 import './ui/ui.css'
 
 const Leaderboard = lazy(() => import('./app/Leaderboard'))
@@ -16,12 +17,19 @@ function ScrollToTop() {
   return null
 }
 
+// Resets the error screen when the visitor navigates to another page.
+function RoutedBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  return <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
+}
+
 export default function App() {
   return (
     <RegisterProvider>
       <WalletProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <RoutedBoundary>
           <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -31,6 +39,7 @@ export default function App() {
               <Route path="/operator" element={<Operator />} />
             </Routes>
           </Suspense>
+          </RoutedBoundary>
         </BrowserRouter>
       </WalletProvider>
     </RegisterProvider>

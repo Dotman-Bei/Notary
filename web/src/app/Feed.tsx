@@ -80,6 +80,7 @@ function Stream() {
               </button>
             ))}
           </div>
+          {rows.length === 0 && <p className="empty stream-empty">{events.length === 0 ? 'Nothing sealed on NotaryRegistry yet. The first seal shows here within seconds of its block.' : 'None of this kind yet.'}</p>}
           <ol className="stream">
             {rows.slice(0, shown).map((e) => {
               const tx = e.type === 'sealed' ? e.receipt.sealTx : e.receipt.revealTx!
@@ -104,7 +105,7 @@ function Stream() {
             })}
           </ol>
           <footer className="register-foot">
-            <span className="muted">{rows.length ? `1–${Math.min(shown, rows.length)} of ${rows.length}` : 'Nothing yet'}</span>
+            <span className="muted">{rows.length ? `1–${Math.min(shown, rows.length)} of ${rows.length}` : '0 events'}</span>
             {shown < rows.length && <button className="btn" onClick={() => setShown(shown + PAGE)}>Load {Math.min(PAGE, rows.length - shown)} more</button>}
           </footer>
         </section>
@@ -116,6 +117,7 @@ function Stream() {
           </section>
           <section className="panel" aria-labelledby="who-title">
             <header><h2 id="who-title">Who wrote in the last 24 h</h2></header>
+            {byAgent.length === 0 && <p className="empty">No agent has registered yet.</p>}
             <ul className="who-list">
               {byAgent.map((b) => (
                 <li key={b.agent.id}>

@@ -298,3 +298,4 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 .op-grid.stretch { align-items: stretch; }
 .op-grid.stretch > .panel { display: flex; flex-direction: column; }
 .op-grid.stretch .op-preview { margin-top: auto; padding-top: 16px; }
+.stream-empty { margin: 16px var(--card-pad); }

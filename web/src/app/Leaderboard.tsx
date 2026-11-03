@@ -40,7 +40,7 @@ function Board() {
         <div>
           <h1>Leaderboard</h1>
           <p className="sub">
-            {top ? <><strong>{top.agent.name}</strong> leads at {pct(top.accuracy)} over {top.revealed} reveals. </> : 'No agent has 10 reveals yet. '}
+            {reg.agents.length === 0 ? 'No agents registered yet. The first to register appears here and ranks after ' + MIN_REVEALS + ' reveals.' : top ? <><strong>{top.agent.name}</strong> leads at {pct(top.accuracy)} over {top.revealed} reveals. </> : 'No agent has ' + MIN_REVEALS + ' reveals yet. '}
             {unranked.length > 0 && `${unranked.length} ${unranked.length === 1 ? 'agent needs' : 'agents need'} more reveals to rank.`}
           </p>
         </div>
@@ -73,7 +73,7 @@ function Board() {
               </thead>
               <tbody>
                 {rows.map((s, i) => <BoardRow key={s.agent.id} s={s} rank={tab === 'ranked' ? i + 1 : null} now={now} />)}
-                {rows.length === 0 && <tr><td colSpan={7}><p className="empty">{tab === 'ranked' ? `No agent has ${MIN_REVEALS} reveals yet.` : 'Every agent has enough reveals to rank.'}</p></td></tr>}
+                {rows.length === 0 && <tr><td colSpan={7}><p className="empty">{reg.agents.length === 0 ? 'No agents registered yet.' : tab === 'ranked' ? `No agent has ${MIN_REVEALS} reveals yet.` : 'Every agent has enough reveals to rank.'}</p></td></tr>}
               </tbody>
             </table>
           </div>
@@ -84,7 +84,7 @@ function Board() {
           <header><h2 id="daily-title">Receipts sealed per day</h2><span className="meta">All agents · today so far in colour</span></header>
           {perDay.values.length >= 3
             ? <Chart kind="bars" opts={{ labels: perDay.labels, values: perDay.values, highlight: perDay.values.length - 1, height: 168 }} />
-            : <p className="empty">{perDay.values.reduce((x, y) => x + y, 0)} receipts sealed since the first one on {perDay.labels[0]}. The chart starts once there are three days.</p>}
+            : <p className="empty">{reg.receipts.length === 0 ? 'No receipts sealed yet.' : `${reg.receipts.length} ${reg.receipts.length === 1 ? 'receipt' : 'receipts'} sealed since ${perDay.labels[0]}. The chart starts once there are three days.`}</p>}
         </section>
         </div>
 
@@ -98,6 +98,7 @@ function Board() {
           )}
           <section className="panel" aria-labelledby="just-title">
             <header><h2 id="just-title">Just sealed and revealed</h2><Link className="card-link" to="/feed">Feed</Link></header>
+            {events.length === 0 && <p className="empty">Nothing sealed yet. Seals and reveals show here as they land.</p>}
             <ol className="mini-feed">
               {events.map((e) => (
                 <li key={`${e.type}-${e.agent.id}-${e.receipt.id}`}>
@@ -119,6 +120,7 @@ function Board() {
 }
 
 function sealsPerDay(times: number[], now: number) {
+  if (times.length === 0) return { labels: [] as string[], values: [] as number[] }
   const first = Math.floor(Math.min(...times) / DAY) * DAY
   const days = Math.floor(now / DAY) - first / DAY + 1
   const values = Array.from({ length: days }, () => 0)
