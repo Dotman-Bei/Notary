@@ -7,6 +7,7 @@ export function receiptHash(agentId: Address, claimText: string, nonce: Hex, pre
   return keccak256(encodePacked(['address', 'string', 'bytes32', 'bytes32'], [agentId, claimText, nonce, prevHash]))
 }
 
-export function shortHash(hash: string, head = 6, tail = 4) {
+export function shortHash(hash: string | undefined, head = 6, tail = 4) {
+  if (!hash) return ''
   return hash.length <= head + tail + 2 ? hash : `${hash.slice(0, head + 2)}…${hash.slice(-tail)}`
 }

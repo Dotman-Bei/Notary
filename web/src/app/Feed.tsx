@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { feed, nowOf, useRegister } from '../data/store'
 import type { FeedEvent } from '../data/types'
-import { LIVE, txUrl } from '../lib/chain'
+import { LIVE, txLabel, txUrl } from '../lib/chain'
 import { ago, utcDate, utcTime } from '../lib/format'
 import { shortHash } from '../lib/receipt'
 import { Chart } from '../ui/Chart'
@@ -97,7 +97,7 @@ function Stream() {
                   </div>
                   <div className="stream-when">
                     <span className="num">{ago(e.at, now)}</span>
-                    <a className="tx" href={txUrl(tx)} aria-label={`${utcTime(e.at, true)} UTC, transaction ${shortHash(tx)} on botscan`}>{utcTime(e.at, true)} UTC</a>
+                    <a className="tx" href={txUrl(tx)} aria-label={`${utcTime(e.at, true)} UTC, ${txLabel(tx)}`}>{utcTime(e.at, true)} UTC</a>
                   </div>
                 </li>
               )
@@ -112,7 +112,7 @@ function Stream() {
         <div className="stack">
           <section className="panel" aria-labelledby="hour-title">
             <header><h2 id="hour-title">Seals per hour</h2><span className="meta">Last 24 h, UTC</span></header>
-            <Chart kind="bars" opts={{ labels: hourLabels, values: perHour, highlight: daybreakAt, height: 180, xAt: [0, 6, 12, 18, 23], annotations: daybreakAt >= 0 ? [{ at: daybreakAt, label: 'Daybreak’s 06:00 seal', short: 'Daybreak' }] : [] }} />
+            <Chart kind="bars" opts={{ labels: hourLabels, values: perHour, highlight: daybreakAt >= 0 ? daybreakAt : perHour.indexOf(Math.max(...perHour)), height: 180, xAt: [0, 6, 12, 18, 23], annotations: daybreakAt >= 0 ? [{ at: daybreakAt, label: 'Daybreak’s 06:00 seal', short: 'Daybreak' }] : [] }} />
           </section>
           <section className="panel" aria-labelledby="who-title">
             <header><h2 id="who-title">Who wrote in the last 24 h</h2></header>

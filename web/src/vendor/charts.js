@@ -315,7 +315,8 @@
     const lit = (i) => highlight == null || (Array.isArray(highlight) ? highlight.includes(i) : highlight === i);
     const draw = () => {
       const { s, w, h } = frame(el, heightOf(height));
-      const yt = ticks(0, Math.max(...values, ...[].concat(reference || []).map((r) => r.value)), 4), tick = tickFormat || format;
+      // counts get whole-number ticks: a small maximum is lifted to 4 so steps never fall to 0.5 (Notary change)
+      const yt = ticks(0, Math.max(...values, values.every(Number.isInteger) ? 4 : 0, ...[].concat(reference || []).map((r) => r.value)), 4), tick = tickFormat || format;
       const padL = 12 + Math.max(...yt.map((v) => measure(s, tick(v), 12))), padB = 26;
       const band = (w - padL) / values.length, bw = Math.max(2, band * 0.62);
       const x = (i) => padL + band * i + band / 2;

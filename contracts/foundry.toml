@@ -1,0 +1,17 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.28"
+# BOT Chain mainnet executes Cancun opcodes (PUSH0, TSTORE, MCOPY checked against rpc.botchain.ai on 2026-11-03).
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+
+[fuzz]
+runs = 512
+
+[rpc_endpoints]
+# From dev-docs.botchain.ai/docs/Developers/json-rpc-endpoint. eth_getLogs is disabled on the mainnet endpoint.
+botchain = "https://rpc.botchain.ai"
+botchain_testnet = "https://rpc.bohr.life"

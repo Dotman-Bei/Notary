@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { feed, leaderboard, MIN_REVEALS, nowOf, useRegister } from '../data/store'
 import type { AgentStats } from '../data/types'
-import { txUrl } from '../lib/chain'
+import { txLabel, txUrl } from '../lib/chain'
 import { ago, pct, utcDate, utcTime } from '../lib/format'
-import { shortHash } from '../lib/receipt'
 import { RecordStrip } from '../ui/RecordStrip'
 import { Seal } from '../ui/Seal'
 import { Shell } from './Shell'
@@ -83,7 +82,9 @@ function Board() {
 
         <section className="panel" aria-labelledby="daily-title">
           <header><h2 id="daily-title">Receipts sealed per day</h2><span className="meta">All agents · today so far in colour</span></header>
-          <Chart kind="bars" opts={{ labels: perDay.labels, values: perDay.values, highlight: perDay.values.length - 1, height: 168 }} />
+          {perDay.values.length >= 3
+            ? <Chart kind="bars" opts={{ labels: perDay.labels, values: perDay.values, highlight: perDay.values.length - 1, height: 168 }} />
+            : <p className="empty">{perDay.values.reduce((x, y) => x + y, 0)} receipts sealed since the first one on {perDay.labels[0]}. The chart starts once there are three days.</p>}
         </section>
         </div>
 
@@ -106,7 +107,7 @@ function Board() {
                     {e.type === 'sealed' ? `sealed #${e.receipt.id}` : `revealed #${e.receipt.id} as ${e.receipt.outcome}`}
                     <small>{e.receipt.category}</small>
                   </span>
-                  <a className="tx" href={txUrl(e.type === 'sealed' ? e.receipt.sealTx : e.receipt.revealTx!)} aria-label={`Transaction ${shortHash(e.type === 'sealed' ? e.receipt.sealTx : e.receipt.revealTx!)} on botscan`}>{ago(e.at, now)}</a>
+                  <a className="tx" href={txUrl(e.type === 'sealed' ? e.receipt.sealTx : e.receipt.revealTx!)} aria-label={txLabel(e.type === 'sealed' ? e.receipt.sealTx : e.receipt.revealTx)}>{ago(e.at, now)}</a>
                 </li>
               ))}
             </ol>

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPublicClient, http, type Address, type Hex } from 'viem'
-import { botChain, FROM_BLOCK, LIVE, NOTARY_ADDRESS, notaryAbi } from '../lib/chain'
+import { botChain, LIVE, NOTARY_ADDRESS, notaryAbi } from '../lib/chain'
 import { buildSample } from './sample'
 import type { Agent, AgentStats, FeedEvent, Receipt, Register } from './types'
 
@@ -45,35 +45,43 @@ export function feed(reg: Register): FeedEvent[] {
 }
 
 // ---------- live reads from NotaryRegistry ----------
+// BOT Chain's public RPC disables eth_getLogs, so the register is read through view calls, batched over HTTP.
+const PAGE = 100 // NotaryRegistry.MAX_PAGE
+const OUTCOME = ['sealed', 'sealed', 'true', 'false'] as const // Status: None, Sealed, True, False
+
 async function readChain(): Promise<Register> {
-  const client = createPublicClient({ chain: botChain, transport: http() })
-  const range = { address: NOTARY_ADDRESS!, fromBlock: FROM_BLOCK, toBlock: 'latest' as const }
-  const [registered, sealed, revealed] = await Promise.all([
-    client.getContractEvents({ abi: notaryAbi, eventName: 'AgentRegistered', ...range }),
-    client.getContractEvents({ abi: notaryAbi, eventName: 'ReceiptSealed', ...range }),
-    client.getContractEvents({ abi: notaryAbi, eventName: 'ReceiptRevealed', ...range }),
-  ])
-  const blockTimes = new Map<bigint, number>()
-  const timeOf = async (n: bigint) => {
-    if (!blockTimes.has(n)) blockTimes.set(n, Number((await client.getBlock({ blockNumber: n })).timestamp) * 1000)
-    return blockTimes.get(n)!
-  }
-  const agents: Agent[] = await Promise.all(registered.map(async (e) => ({
-    id: e.args.agentId as Address, name: e.args.name ?? 'Unnamed agent', kind: '', about: '',
-    metadataURI: e.args.metadataURI ?? '', registeredAt: await timeOf(e.blockNumber), registerTx: e.transactionHash,
-  })))
-  const reveals = new Map(revealed.map((e) => [`${e.args.agentId}:${e.args.receiptId}`, e]))
-  const receipts: Receipt[] = await Promise.all(sealed.map(async (e) => {
-    const rv = reveals.get(`${e.args.agentId}:${e.args.receiptId}`)
-    return {
-      agentId: e.args.agentId as Address, id: Number(e.args.receiptId), category: e.args.category ?? '',
-      claimText: rv?.args.claimText ?? '', nonce: '0x' as Hex, prevHash: e.args.prevHash as Hex, hash: e.args.receiptHash as Hex,
-      sealedAt: await timeOf(e.blockNumber), sealTx: e.transactionHash,
-      outcome: rv ? (rv.args.outcome ? 'true' : 'false') : 'sealed',
-      revealedAt: rv ? await timeOf(rv.blockNumber) : undefined, revealTx: rv?.transactionHash,
-    }
+  const client = createPublicClient({ chain: botChain, transport: http(undefined, { batch: true }) })
+  const c = { address: NOTARY_ADDRESS!, abi: notaryAbi } as const
+
+  const count = Number(await client.readContract({ ...c, functionName: 'agentCount' }))
+  const idPages = await Promise.all(
+    Array.from({ length: Math.ceil(count / PAGE) }, (_, p) => client.readContract({ ...c, functionName: 'getAgents', args: [BigInt(p * PAGE), BigInt(PAGE)] })),
+  )
+  const ids = idPages.flat()
+  const profiles = await Promise.all(ids.map((id) => client.readContract({ ...c, functionName: 'getAgentProfile', args: [id] })))
+
+  const receipts: Receipt[] = []
+  await Promise.all(ids.map(async (id, i) => {
+    const total = Number(profiles[i].receiptCount)
+    const pages = await Promise.all(
+      Array.from({ length: Math.ceil(total / PAGE) }, (_, p) => client.readContract({ ...c, functionName: 'getReceipts', args: [id, BigInt(p * PAGE + 1), BigInt(PAGE)] })),
+    )
+    pages.flat().forEach((r, k) => {
+      const outcome = OUTCOME[r.status]
+      receipts.push({
+        agentId: id, id: k + 1, category: r.category, claimText: r.claimText,
+        nonce: '0x' as Hex, prevHash: r.prevHash, hash: r.receiptHash,
+        sealedAt: Number(r.sealedAt) * 1000, sealTx: '' as Hex, outcome,
+        revealedAt: outcome === 'sealed' ? undefined : Number(r.revealedAt) * 1000,
+      })
+    })
   }))
-  for (const a of agents) a.kind = receipts.find((r) => r.agentId === a.id)?.category ?? ''
+
+  const agents: Agent[] = ids.map((id, i) => ({
+    id: id as Address, name: profiles[i].name, metadataURI: profiles[i].metadataURI,
+    registeredAt: Number(profiles[i].registeredAt) * 1000, registerTx: '' as Hex,
+    kind: receipts.find((r) => r.agentId === id)?.category ?? '', about: '',
+  }))
   return { mode: 'live', loadedAt: Date.now(), agents, receipts }
 }
 
