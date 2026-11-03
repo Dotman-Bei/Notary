@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPublicClient, http, type Address, type Hex } from 'viem'
-import { botChain, LIVE, NOTARY_ADDRESS, notaryAbi } from '../lib/chain'
-import { buildSample } from './sample'
+import { botChain, DAYBREAK_ADDRESS, LIVE, NOTARY_ADDRESS, notaryAbi } from '../lib/chain'
+import { buildSample, DAYBREAK_ABOUT } from './sample'
 import type { Agent, AgentStats, FeedEvent, Receipt, Register } from './types'
 
 // Sample data is a snapshot, so relative times count from when it was taken.
@@ -77,11 +77,15 @@ async function readChain(): Promise<Register> {
     })
   }))
 
-  const agents: Agent[] = ids.map((id, i) => ({
-    id: id as Address, name: profiles[i].name, metadataURI: profiles[i].metadataURI,
-    registeredAt: Number(profiles[i].registeredAt) * 1000, registerTx: '' as Hex,
-    kind: receipts.find((r) => r.agentId === id)?.category ?? '', about: '',
-  }))
+  const agents: Agent[] = ids.map((id, i) => {
+    const demo = id.toLowerCase() === DAYBREAK_ADDRESS.toLowerCase()
+    return {
+      id: id as Address, name: profiles[i].name, metadataURI: profiles[i].metadataURI,
+      registeredAt: Number(profiles[i].registeredAt) * 1000, registerTx: '' as Hex,
+      kind: demo ? 'Crypto prices' : receipts.find((r) => r.agentId === id)?.category ?? '',
+      about: demo ? DAYBREAK_ABOUT : '', demo,
+    }
+  })
   return { mode: 'live', loadedAt: Date.now(), agents, receipts }
 }
 

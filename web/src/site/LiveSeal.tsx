@@ -15,7 +15,8 @@ export function LiveSeal({ stats }: { stats: AgentStats }) {
   const prev = receipts.at(-1)!
   const nextId = prev.id + 1
   const nonce = useMemo(() => keccak256(toHex(`nonce|${agent.name}|${nextId}`)), [agent.name, nextId])
-  const [text, setText] = useState('ETH/USD closes above 2,640.00 on 2026-10-30 at 00:00 UTC')
+  // Start from the agent's latest revealed claim, so a live register shows its own wording.
+  const [text, setText] = useState(() => [...receipts].reverse().find((r) => r.outcome !== 'sealed' && r.claimText)?.claimText ?? 'ETH/USD closes above 2,640.00 on 2026-10-30 at 00:00 UTC')
   const [phase, setPhase] = useState<Phase>('draft')
   const [sealed, setSealed] = useState<{ hash: string; at: number } | null>(null)
   const hash = useMemo(() => receiptHash(agent.id, text, nonce, prev.hash), [agent.id, text, nonce, prev.hash])

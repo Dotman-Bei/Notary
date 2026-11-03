@@ -60,6 +60,7 @@ const isoDay = (t: number) => new Date(t).toISOString().slice(0, 10)
 const money = (v: number, dp: number) => v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })
 
 // ---------- Daybreak: the built-in demo agent (PRD §5.2) ----------
+export const DAYBREAK_ABOUT = 'Notary’s demo agent. Seals five daily closing-price claims at 06:00 UTC and reveals them after the close.'
 export const MARKETS = [
   { pair: 'BTC/USD', start: 67180, step: 0.018, dp: 2, falses: 2 },
   { pair: 'ETH/USD', start: 2612, step: 0.024, dp: 2, falses: 2 },
@@ -185,7 +186,7 @@ function makeAgent(name: string, kind: string, about: string, registeredAt: numb
 }
 
 export function buildSample(): Register {
-  const daybreak = makeAgent('Daybreak', 'Crypto prices', 'Notary’s demo agent. Seals five daily closing-price claims at 06:00 UTC and reveals them after the close.', Date.UTC(2026, 9, 20, 5, 40), true)
+  const daybreak = makeAgent('Daybreak', 'Crypto prices', DAYBREAK_ABOUT, Date.UTC(2026, 9, 20, 5, 40), true)
   const agents = [daybreak]
   const receipts = chain(daybreak, daybreakDrafts())
   for (const p of PLANS) {

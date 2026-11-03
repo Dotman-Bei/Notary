@@ -231,7 +231,7 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
             {planned !== null && <div><dt>Missed seals</dt><dd className="num">{Math.max(0, planned - weekSeals)}</dd></div>}
             <div><dt>Last seal</dt><dd className="num">{lastSeal ? `${utcDate(lastSeal.sealedAt)}, ${utcTime(lastSeal.sealedAt, true)} UTC` : '—'}</dd></div>
             <div><dt>Last reveal</dt><dd className="num">{lastReveal ? `${utcDate(lastReveal.revealedAt!)}, ${utcTime(lastReveal.revealedAt!, true)} UTC` : '—'}</dd></div>
-            {agent.demo && <div><dt>Schedule</dt><dd>5 claims at 06:00 UTC, reveal at 00:05 UTC</dd></div>}
+            {agent.demo && <div><dt>Schedule</dt><dd>5 claims from 06:00 UTC, revealed after the 00:00 UTC close</dd></div>}
             <div><dt>Chain head</dt><dd><code>{shortHash(stats.head, 8, 6)}</code></dd></div>
           </dl>
         </section>

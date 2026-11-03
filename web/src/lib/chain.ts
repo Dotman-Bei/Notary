@@ -15,6 +15,10 @@ export const NOTARY_ADDRESS: Address | undefined = env.VITE_NOTARY_ADDRESS || un
 // The app reads the chain once the contract address is set; otherwise it renders the sample register.
 export const LIVE = Boolean(NOTARY_ADDRESS)
 
+// Daybreak, the built-in demo agent run by agent/ (notary.mjs daybreak run). Matched by address, not
+// name, since anyone can register an agent called Daybreak.
+export const DAYBREAK_ADDRESS: Address = env.VITE_DAYBREAK_ADDRESS || '0x9D2d1C511D72195D4Ad9b2fB87b5DDb3BB426827'
+
 export const botChain = defineChain({
   id: CHAIN_ID,
   name: 'BOT Chain Mainnet',

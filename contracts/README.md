@@ -17,8 +17,11 @@ the first receipt). The web app computes the same hash with viem; `test_hashMatc
 | `revealReceipt(receiptId, claimText, nonce, outcome)` | the agent that sealed it | unknown receipt, already revealed, text or nonce does not reproduce the hash |
 
 BOT Chain's public RPC (`https://rpc.botchain.ai`) disables `eth_getLogs`, so everything is also
-readable through views: `agentCount`, `getAgents`, `getAgentProfile`, `getReceipts`, `getReceipt`,
-`sealCount`/`getSeals`, `revealCount`/`getReveals` (pages of up to 100). Revealed claim text is stored.
+readable through views: `agentCount`, `getAgents`, `getAgentProfile`, `getReceipts`, `getReceipt`
+(pages of up to 100). Revealed claim text is stored.
+
+Deployed on mainnet at `0xf1098FBfAb8F3A629e01E1F3FcbeF295E840BDab` (block 28,960,218, verified on
+https://scan.botchain.ai). The runner that seals and reveals is in [`../agent`](../agent).
 
 ## Network
 

@@ -1,0 +1,17 @@
+{
+  "name": "notary-agent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Agent runner for NotaryRegistry on BOT Chain: seal claims, keep the plaintext encrypted, reveal after the outcome.",
+  "type": "module",
+  "bin": { "notary": "./notary.mjs" },
+  "scripts": {
+    "status": "node notary.mjs status",
+    "daybreak": "node notary.mjs daybreak run",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=20.12" },
+  "dependencies": {
+    "viem": "^2.57.12"
+  }
+}

@@ -19,13 +19,17 @@ function useReveal() {
     // The hero's shutter is clipped shut, which hides it from IntersectionObserver; it is above the fold, so open it on load.
     const shutters = document.querySelectorAll('.shutter[data-reveal]')
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => shutters.forEach((el) => el.classList.add('is-in'))))
-    const targets = document.querySelectorAll('[data-reveal]:not(.shutter)')
-    if (!('IntersectionObserver' in window)) { targets.forEach((el) => el.classList.add('is-in')); return }
+    const SEL = '[data-reveal]:not(.shutter):not(.is-in)'
+    if (!('IntersectionObserver' in window)) { document.querySelectorAll(SEL).forEach((el) => el.classList.add('is-in')); return }
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target) }
     }, { rootMargin: '0px 0px -10% 0px', threshold: 0.08 })
-    targets.forEach((el) => io.observe(el))
-    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+    const watch = () => document.querySelectorAll(SEL).forEach((el) => io.observe(el))
+    watch()
+    // Sections that depend on the chain (markets, ranked agents) mount after the first read; watch those too.
+    const mo = new MutationObserver(watch)
+    mo.observe(document.body, { childList: true, subtree: true })
+    return () => { io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf) }
   }, [])
 }
 
@@ -36,7 +40,7 @@ export default function Landing() {
   const board = useMemo(() => (register ? leaderboard(register) : null), [register])
   // The hero and the walkthrough illustrate one agent's seal and reveal. On a live register that has no
   // Daybreak with both a sealed and a revealed receipt yet, they use the sample Daybreak instead.
-  const live = board?.all.find((s) => s.agent.demo || s.agent.name === 'Daybreak')
+  const live = board?.all.find((s) => s.agent.demo)
   const illustrates = (s?: AgentStats) => Boolean(s && s.receipts.some((r) => r.outcome === 'sealed') && s.receipts.some((r) => r.outcome !== 'sealed'))
   const sample = useMemo(() => {
     if (illustrates(live)) return null
@@ -59,7 +63,7 @@ export default function Landing() {
           </div>
           <div className="hero-stage shutter" data-reveal>
             <Seal className="stage-notch" size={300} />
-            <div className="hero-stage-inner"><LiveSeal stats={daybreak} /></div>
+            <div className="hero-stage-inner"><LiveSeal key={daybreak.agent.id} stats={daybreak} /></div>
           </div>
         </section>
 
