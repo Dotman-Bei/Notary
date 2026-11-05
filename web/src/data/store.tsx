@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPublicClient, http, type Address, type Hex } from 'viem'
-import { botChain, DAYBREAK_ADDRESS, LIVE, NOTARY_ADDRESS, notaryAbi } from '../lib/chain'
+import { botChain, DAYBREAK_ADDRESS, LIVE, NOTARY_ADDRESS, notaryAbi, TEST_WALLETS } from '../lib/chain'
 import { buildSample, DAYBREAK_ABOUT } from './sample'
 import type { Agent, AgentStats, FeedEvent, Receipt, Register } from './types'
 
@@ -22,6 +22,12 @@ export function statsFor(agent: Agent, all: Receipt[]): AgentStats {
     head: last?.hash ?? (`0x${'0'.repeat(64)}` as Hex),
     lastSealedAt: last?.sealedAt ?? null,
   }
+}
+
+// The register as the home page and leaderboard page show it: without the project's test wallets.
+export function withoutTestWallets(reg: Register): Register {
+  const keep = (id: string) => !TEST_WALLETS.has(id.toLowerCase())
+  return { ...reg, agents: reg.agents.filter((a) => keep(a.id)), receipts: reg.receipts.filter((r) => keep(r.agentId)) }
 }
 
 export function leaderboard(reg: Register) {

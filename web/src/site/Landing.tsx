@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { leaderboard, MIN_REVEALS, statsFor, useRegister } from '../data/store'
+import { leaderboard, MIN_REVEALS, statsFor, useRegister, withoutTestWallets } from '../data/store'
 import { buildSample, MARKETS } from '../data/sample'
 import type { AgentStats, Receipt } from '../data/types'
-import { addressUrl, CHAIN_ID, EXPLORER, NOTARY_ADDRESS } from '../lib/chain'
+import { BOT_CHAIN_SITE, addressUrl, CHAIN_ID, EXPLORER, NOTARY_ADDRESS } from '../lib/chain'
 import { pct, utcDate, utcTime } from '../lib/format'
 import { shortHash } from '../lib/receipt'
 import { OutcomePill } from '../ui/Pill'
@@ -37,7 +37,8 @@ export default function Landing() {
   const { register } = useRegister()
   useReveal()
   useEffect(() => { document.title = 'Notary · proof before the fact' }, [])
-  const board = useMemo(() => (register ? leaderboard(register) : null), [register])
+  const visible = useMemo(() => (register ? withoutTestWallets(register) : null), [register])
+  const board = useMemo(() => (visible ? leaderboard(visible) : null), [visible])
   // The hero and the walkthrough illustrate one agent's seal and reveal. On a live register that has no
   // Daybreak with both a sealed and a revealed receipt yet, they use the sample Daybreak instead.
   const live = board?.all.find((s) => s.agent.demo)
@@ -71,7 +72,7 @@ export default function Landing() {
         {marketsReal && <Markets stats={daybreak} />}
         <RegisterBand />
         <Rules address={daybreak.agent.id} />
-        {board && <Ranked ranked={board.ranked} unranked={board.unranked} receipts={register!.receipts.length} />}
+        {board && <Ranked ranked={board.ranked} unranked={board.unranked} receipts={visible!.receipts.length} />}
         <Faq />
         <Cta />
       </main>
@@ -457,8 +458,8 @@ function SiteFooter() {
           <span className="footer-word">Notary</span>
         </div>
         <div className="footer-cols">
-          <div><h2>Registry</h2><ul role="list"><li><Link to="/leaderboard">Leaderboard</Link></li><li><Link to="/feed">Commit feed</Link></li><li><Link to="/operator">Your agent</Link></li></ul></div>
-          <div><h2>Contract</h2><ul role="list"><li>{NOTARY_ADDRESS ? <a href={addressUrl(NOTARY_ADDRESS)}>NotaryRegistry on botscan</a> : <a href={EXPLORER}>botscan explorer</a>}</li><li>BOT Chain, chain {CHAIN_ID}</li></ul></div>
+          <div><h2>Registry</h2><ul role="list"><li><Link to="/leaderboard">Leaderboard</Link></li><li><Link to="/feed">Commit feed</Link></li><li><Link to="/operator">Your agent</Link></li>{NOTARY_ADDRESS && <li><a href={addressUrl(NOTARY_ADDRESS)}>NotaryRegistry contract</a></li>}</ul></div>
+          <div><h2>BOT Chain</h2><ul role="list"><li><a href={BOT_CHAIN_SITE}>BOT Chain official website</a></li><li><a href={EXPLORER}>BOT Chain Explorer</a></li><li>Chain {CHAIN_ID}</li></ul></div>
           <div><h2>Roadmap</h2><ul role="list"><li>M1 Deployed MVP</li><li>M2 Operator SDK and docs</li><li>M3 Read API for other dApps</li></ul></div>
           <div className="footer-credits">
             <h2>Pictures</h2>

@@ -6,6 +6,7 @@ import { defineChain, type Address } from 'viem'
 export const CHAIN_ID = 677
 export const CHAIN_ID_HEX = '0x2a5'
 export const EXPLORER = 'https://scan.botchain.ai'
+export const BOT_CHAIN_SITE = 'https://www.botchain.ai'
 const DEFAULT_RPC = 'https://rpc.botchain.ai'
 
 const env = import.meta.env
@@ -18,6 +19,18 @@ export const LIVE = Boolean(NOTARY_ADDRESS)
 // Daybreak, the built-in demo agent run by agent/ (notary.mjs daybreak run). Matched by address, not
 // name, since anyone can register an agent called Daybreak.
 export const DAYBREAK_ADDRESS: Address = env.VITE_DAYBREAK_ADDRESS || '0x9D2d1C511D72195D4Ad9b2fB87b5DDb3BB426827'
+
+// The project's own smoke-test wallets ("Test wallet 1" to 7). They stay on chain and in the commit
+// feed, but are left out of the home page and the leaderboard page.
+export const TEST_WALLETS = new Set([
+  '0x48c5fa23f826713f886e940ce04c34a3ba50e5a9',
+  '0xf7d2035a8c4f76faab3c7ac69d24f8c70fea2c96',
+  '0xadf9d9857952667a825b3d83527bfbcc89b14f24',
+  '0xfba116fec0e41b29d7e5ccadb3f967a9f9fcf235',
+  '0xbd47226848560f28527efae5beada52126996ca9',
+  '0x53e94e9e23d7e3e25a489d1896caf9b714c57e8e',
+  '0x086f6ebc087034c7f842a2bdc6a677f1849c5638',
+])
 
 export const botChain = defineChain({
   id: CHAIN_ID,

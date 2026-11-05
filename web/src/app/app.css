@@ -299,3 +299,9 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 .op-grid.stretch > .panel { display: flex; flex-direction: column; }
 .op-grid.stretch .op-preview { margin-top: auto; padding-top: 16px; }
 .stream-empty { margin: 16px var(--card-pad); }
+
+/* footer: BOT Chain links on every app screen */
+.app-footer { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: var(--fs-small); color: var(--muted); }
+.app-footer span { margin-right: auto; }
+.app-footer a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+.app-footer a:hover { color: var(--text); }

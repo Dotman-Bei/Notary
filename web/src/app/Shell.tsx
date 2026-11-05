@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { addressUrl, CHAIN_ID, EXPLORER, LIVE, NOTARY_ADDRESS } from '../lib/chain'
+import { addressUrl, BOT_CHAIN_SITE, CHAIN_ID, EXPLORER, LIVE, NOTARY_ADDRESS } from '../lib/chain'
 import { utcDate, utcTime } from '../lib/format'
 import { shortHash } from '../lib/receipt'
 import { useWallet } from '../lib/wallet'
@@ -57,6 +57,11 @@ export function Shell({ screen, children }: { screen: string; children: ReactNod
           </p>
         )}
         {children}
+        <footer className="app-footer">
+          <span>Built on BOT Chain</span>
+          <a href={BOT_CHAIN_SITE}>BOT Chain official website</a>
+          <a href={EXPLORER}>BOT Chain Explorer</a>
+        </footer>
       </main>
     </div>
   )

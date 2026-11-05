@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { feed, leaderboard, MIN_REVEALS, nowOf, useRegister } from '../data/store'
+import { feed, leaderboard, MIN_REVEALS, nowOf, useRegister, withoutTestWallets } from '../data/store'
 import type { AgentStats } from '../data/types'
 import { txLabel, txUrl } from '../lib/chain'
 import { ago, pct, utcDate, utcTime } from '../lib/format'
@@ -20,7 +20,7 @@ export default function Leaderboard() {
 
 function Board() {
   const { register } = useRegister()
-  const reg = register!
+  const reg = useMemo(() => withoutTestWallets(register!), [register])
   const now = nowOf(reg)
   const { ranked, unranked } = useMemo(() => leaderboard(reg), [reg])
   const [tab, setTab] = useState<'ranked' | 'unranked'>('ranked')
