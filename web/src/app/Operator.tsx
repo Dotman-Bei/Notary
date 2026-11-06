@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { createPublicClient, http, isHex, type Hex } from 'viem'
+import { createPublicClient, http, isHex, toHex, type Hex } from 'viem'
 import { MIN_REVEALS, nowOf, statsFor, useRegister } from '../data/store'
 import type { Agent, AgentStats, Receipt } from '../data/types'
 import { botChain, LIVE, NOTARY_ADDRESS, notaryAbi, txUrl } from '../lib/chain'
 import { ago, utcDate, utcTime } from '../lib/format'
+import { downloadBackup, findClaim, removeClaim, saveClaim } from '../lib/claimStore'
 import { receiptHash, shortHash } from '../lib/receipt'
 import { useWallet } from '../lib/wallet'
 import { OutcomePill } from '../ui/Pill'
@@ -61,7 +62,7 @@ function FirstRun() {
             </li>
             <li>
               <span className="setup-mark"><Seal size={16} variant="ring" /></span>
-              <div><p><strong>Start the runner</strong></p><p className="muted">The agent runner seals each claim with <code>commitReceipt</code>, keeps the claim text and nonce encrypted on disk, and reveals after the outcome.</p></div>
+              <div><p><strong>Seal and reveal</strong></p><p className="muted">Seal claims with <code>commitReceipt</code> from this page, and reveal them after the outcome. To automate it, use the agent runner in the repo.</p></div>
             </li>
           </ol>
           {w.error && <p className="form-error">{w.error}</p>}
@@ -81,7 +82,7 @@ function FirstRun() {
       </div>
       <section className="panel" aria-labelledby="wait-empty">
         <header><h2 id="wait-empty">Sealed, awaiting reveal</h2><span className="meta">0 receipts</span></header>
-        <p className="empty">Receipts appear here after the runner’s first seal, with a Reveal action once their outcome is known.</p>
+        <p className="empty">Receipts appear here after your first seal, with a Reveal action for when the outcome is known.</p>
       </section>
     </>
   )
@@ -167,8 +168,11 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
   const now = nowOf(register!)
   const { agent, receipts } = stats
   const sealed = receipts.filter((r) => r.outcome === 'sealed')
-  const due = sealed.filter((r) => { const c = closeOf(r, agent); return c === null || c <= now })
-  const [pick, setPick] = useState<number | null>(sealed[0]?.id ?? null)
+  const due = sealed.filter((r) => { const c = closeOf(r, agent); return c !== null && c <= now })
+  const [pick, setPick] = useState<number | null>(null)
+  // A revealed receipt leaves this list, so a picked id can stop matching.
+  const picked = sealed.find((r) => r.id === pick) ?? (pick === null ? due[0] : undefined)
+  const [revealed, setRevealed] = useState<{ id: number; hash: Hex } | null>(null)
 
   const lastSeal = receipts.at(-1)
   const lastReveal = [...receipts].filter((r) => r.revealedAt).sort((a, b) => b.revealedAt! - a.revealedAt!)[0]
@@ -188,7 +192,9 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
               ? <><strong>{due.length} {due.length === 1 ? 'receipt is' : 'receipts are'} due for reveal.</strong> Their outcomes are known; until revealed they don’t count.</>
               : nextClose
                 ? <>Nothing due. <strong>{sealed.length} sealed claims</strong> reveal after the {utcTime(nextClose)} UTC close on {utcDate(nextClose)}, in {ago(now, nextClose).replace(' ago', '')}.</>
-                : 'Nothing sealed and waiting.'}
+                : sealed.length
+                  ? <><strong>{sealed.length} sealed {sealed.length === 1 ? 'claim' : 'claims'}.</strong> Reveal each one once its outcome is known.</>
+                  : 'Nothing sealed and waiting.'}
           </p>
         </div>
         <div className="title-actions">
@@ -197,6 +203,8 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
         </div>
       </div>
 
+      {!preview && <SealForm stats={stats} />}
+
       <div className="op-grid">
         <section className="panel flush" aria-labelledby="wait-title">
           <header><h2 id="wait-title">Sealed, awaiting reveal</h2><span className="meta">{sealed.length} receipts</span></header>
@@ -204,22 +212,22 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
             <ul className="wait-list">
               {sealed.slice(-6).reverse().map((r) => {
                 const c = closeOf(r, agent)
-                const isDue = c === null || c <= now
+                const isDue = c !== null && c <= now
                 return (
-                  <li key={r.id} className={pick === r.id ? 'is-picked' : undefined}>
+                  <li key={r.id} className={picked?.id === r.id ? 'is-picked' : undefined}>
                     <span className="muted num">#{r.id}</span>
                     <span>{r.category}<span className="sub">Sealed {utcDate(r.sealedAt)}, {utcTime(r.sealedAt)} UTC</span></span>
-                    <span className="wait-state">{isDue ? <span className="pill pill-warning">Due</span> : <span className="muted">Closes {utcTime(c!)} UTC</span>}</span>
-                    <button className="btn" aria-pressed={pick === r.id} onClick={() => setPick(r.id)}>{pick === r.id ? 'In the form' : 'Reveal'}</button>
+                    <span className="wait-state">{isDue ? <span className="pill pill-warning">Due</span> : c === null ? <span className="muted">When known</span> : <span className="muted">Closes {utcTime(c)} UTC</span>}</span>
+                    <button className="btn" aria-pressed={picked?.id === r.id} onClick={() => setPick(r.id)}>{picked?.id === r.id ? 'In the form' : 'Reveal'}</button>
                   </li>
                 )
               })}
             </ul>
-          ) : <p className="empty" style={{ margin: '0 20px 20px' }}>Every receipt is revealed.</p>}
+          ) : <p className="empty" style={{ margin: '0 20px 20px' }}>{receipts.length ? 'Every receipt is revealed.' : 'Nothing sealed yet.'}</p>}
         </section>
 
         <section className="panel" aria-labelledby="runner-title">
-          <header><h2 id="runner-title">Runner</h2><span className="meta">From the chain</span></header>
+          <header><h2 id="runner-title">{agent.demo ? 'Runner' : 'Activity'}</h2><span className="meta">From the chain</span></header>
           {planned !== null && (
             <div className="plan">
               <p><span className="figure-sm num">{weekSeals}</span> <span className="muted">of {planned} planned seals in the last {days} days</span></p>
@@ -237,16 +245,104 @@ function Registered({ stats, preview }: { stats: AgentStats; preview: boolean })
         </section>
       </div>
 
-      {pick !== null && <RevealForm key={pick} receipt={sealed.find((r) => r.id === pick)!} agent={agent} preview={preview} />}
+      {revealed && !picked && <p className="notice" role="status">Receipt #{revealed.id} revealed in transaction <a className="tx" href={txUrl(revealed.hash)}><code>{shortHash(revealed.hash)}</code></a>. The score updates with this block.</p>}
+      {picked && <RevealForm key={picked.id} receipt={picked} agent={agent} preview={preview} onRevealed={(hash) => { setPick(-1); setRevealed({ id: picked.id, hash }) }} />}
     </>
   )
 }
 
-function RevealForm({ receipt, agent, preview }: { receipt: Receipt; agent: Agent; preview: boolean }) {
+const bytesOf = (s: string) => new TextEncoder().encode(s).length
+const MAX_CLAIM_BYTES = 1024 // NotaryRegistry.MAX_CLAIM_BYTES
+const MAX_CATEGORY_BYTES = 32 // NotaryRegistry.MAX_CATEGORY_BYTES
+
+function SealForm({ stats }: { stats: AgentStats }) {
   const w = useWallet()
   const { refresh } = useRegister()
+  const { agent } = stats
+  const [category, setCategory] = useState('')
   const [text, setText] = useState('')
-  const [nonce, setNonce] = useState('')
+  const [tx, setTx] = useState<{ hash?: Hex; id?: number; state: 'idle' | 'sending' | 'sent' | 'confirmed' | 'failed'; error?: string }>({ state: 'idle' })
+  const claim = text.trim()
+  const claimBytes = bytesOf(claim)
+  const ready = claim.length > 0 && claimBytes <= MAX_CLAIM_BYTES && category.trim().length > 0 && bytesOf(category.trim()) <= MAX_CATEGORY_BYTES
+  const isOwner = w.account?.toLowerCase() === agent.id.toLowerCase()
+  const blocked = !NOTARY_ADDRESS ? NOT_CONFIGURED : !isOwner ? 'Only the agent’s own address can seal. Connect it to send.' : !w.onBotChain ? 'Switch the wallet to BOT Chain (677) first.' : null
+  const busy = tx.state === 'sending' || tx.state === 'sent'
+
+  const send = async () => {
+    const client = w.client()
+    if (!client || blocked || !ready) return
+    setTx({ state: 'sending' })
+    let hash: Hex | undefined
+    let sent = false
+    try {
+      const pub = createPublicClient({ chain: botChain, transport: http() })
+      // Read the head at send time: the hash must link to the chain as it is now, not as last polled.
+      const { head, receiptCount } = await pub.readContract({ address: NOTARY_ADDRESS!, abi: notaryAbi, functionName: 'getAgentProfile', args: [agent.id] })
+      const nonce = toHex(crypto.getRandomValues(new Uint8Array(32)))
+      hash = receiptHash(agent.id, claim, nonce, head)
+      if (!saveClaim(agent.id, { hash, claimText: claim, nonce, category: category.trim(), savedAt: Date.now() })) {
+        setTx({ state: 'failed', error: 'This browser would not save the claim, so nothing was sent. Without the saved text and nonce it could never be revealed.' })
+        return
+      }
+      const txHash = await client.writeContract({ address: NOTARY_ADDRESS!, abi: notaryAbi, functionName: 'commitReceipt', args: [hash, category.trim()], chain: botChain, account: w.account! })
+      sent = true
+      setTx({ hash: txHash, state: 'sent' })
+      await pub.waitForTransactionReceipt({ hash: txHash })
+      setTx({ hash: txHash, id: Number(receiptCount) + 1, state: 'confirmed' })
+      setText('')
+      refresh()
+    } catch (e) {
+      if (hash && !sent) removeClaim(agent.id, hash) // it never left the wallet
+      setTx({ state: 'failed', error: (e as Error).message.split('\n')[0] })
+    }
+  }
+
+  return (
+    <div className="op-grid">
+      <section className="panel" aria-labelledby="seal-title">
+        <header><h2 id="seal-title">Seal a claim</h2><span className="meta">One transaction</span></header>
+        <form className="form" onSubmit={(e) => { e.preventDefault(); send() }}>
+          <div className="field">
+            <label htmlFor="seal-text">Claim</label>
+            <textarea id="seal-text" className="input" rows={3} value={text} onChange={(e) => setText(e.target.value)} aria-describedby="seal-text-hint" />
+            <p id="seal-text-hint" className="hint">Say what will happen and by when, so anyone can check it later. Up to {MAX_CLAIM_BYTES} bytes; now {claimBytes}.</p>
+          </div>
+          <div className="field">
+            <label htmlFor="seal-category">Category</label>
+            <input id="seal-category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="BTC/USD" aria-describedby="seal-category-hint" autoComplete="off" />
+            <p id="seal-category-hint" className="hint">Public from the moment you seal. Up to {MAX_CATEGORY_BYTES} bytes.</p>
+          </div>
+          <div className="form-foot">
+            {blocked && <p id="seal-blocked" className="hint">{blocked}</p>}
+            <button type="submit" className="btn primary" disabled={Boolean(blocked) || !ready || busy} aria-describedby={blocked ? 'seal-blocked' : undefined}>
+              {tx.state === 'sending' ? 'Confirm in wallet…' : tx.state === 'sent' ? 'Waiting for the block…' : 'Seal claim'}
+            </button>
+          </div>
+          {tx.hash && <p className="hint" role="status">Transaction <a className="tx" href={txUrl(tx.hash)}><code>{shortHash(tx.hash)}</code></a>{tx.state === 'confirmed' && ` confirmed. Sealed as receipt #${tx.id}.`}</p>}
+          {tx.state === 'failed' && <p className="form-error">{tx.error}</p>}
+        </form>
+      </section>
+      <section className="panel" aria-labelledby="keep-title">
+        <header><h2 id="keep-title">What goes where</h2></header>
+        <dl className="kv">
+          <div><dt>On chain now</dt><dd>Hash, time, category</dd></div>
+          <div><dt>This browser</dt><dd>Claim text, nonce</dd></div>
+          <div><dt>On chain at reveal</dt><dd>Claim text, outcome</dd></div>
+        </dl>
+        <p className="muted seal-warning">The claim and nonce are saved unencrypted in this browser only. Clearing its data, or changing device, loses them, and the receipt can then never be revealed.</p>
+        <p className="seal-backup"><button type="button" className="btn" onClick={() => downloadBackup(agent.id)}>Download backup</button></p>
+      </section>
+    </div>
+  )
+}
+
+function RevealForm({ receipt, agent, preview, onRevealed }: { receipt: Receipt; agent: Agent; preview: boolean; onRevealed: (hash: Hex) => void }) {
+  const w = useWallet()
+  const { refresh } = useRegister()
+  const saved = useMemo(() => findClaim(agent.id, receipt.hash), [agent.id, receipt.hash])
+  const [text, setText] = useState(saved?.claimText ?? '')
+  const [nonce, setNonce] = useState<string>(saved?.nonce ?? '')
   const [outcome, setOutcome] = useState<boolean | null>(null)
   const [tx, setTx] = useState<{ hash?: Hex; state: 'idle' | 'sending' | 'sent' | 'confirmed' | 'failed'; error?: string }>({ state: 'idle' })
   const nonceOk = isHex(nonce) && nonce.length === 66
@@ -264,6 +360,7 @@ function RevealForm({ receipt, agent, preview }: { receipt: Receipt; agent: Agen
       setTx({ hash, state: 'sent' })
       await createPublicClient({ chain: botChain, transport: http() }).waitForTransactionReceipt({ hash })
       setTx({ hash, state: 'confirmed' })
+      onRevealed(hash)
       refresh()
     } catch (e) {
       setTx({ state: 'failed', error: (e as Error).message.split('\n')[0] })
@@ -282,7 +379,7 @@ function RevealForm({ receipt, agent, preview }: { receipt: Receipt; agent: Agen
           <div className="field">
             <label htmlFor="rv-nonce">Nonce</label>
             <input id="rv-nonce" className="input mono-input" value={nonce} onChange={(e) => setNonce(e.target.value.trim())} placeholder="0x…" aria-describedby="nonce-hint" autoComplete="off" spellCheck={false} />
-            <p id="nonce-hint" className="hint">32 bytes as 0x and 64 hex characters, from the runner’s local store.</p>
+            <p id="nonce-hint" className="hint">{saved ? 'Filled in from this browser, where you sealed it.' : '32 bytes as 0x and 64 hex characters, from your backup or the runner’s store.'}</p>
           </div>
           <fieldset className="field outcome">
             <legend>Outcome</legend>

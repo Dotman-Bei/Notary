@@ -305,3 +305,7 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 .app-footer span { margin-right: auto; }
 .app-footer a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 .app-footer a:hover { color: var(--text); }
+
+/* seal form: what the browser keeps, and the way to back it up */
+.seal-warning { margin-top: 16px; font-size: var(--fs-small); }
+.seal-backup { margin-top: 12px; }

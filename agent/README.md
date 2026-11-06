@@ -52,8 +52,9 @@ not to be a good model.
 Cost at 20 gwei: registering about 0.0037 BOT, a seal about 0.0021 BOT, a reveal about 0.0022 BOT.
 That comes to about 0.022 BOT a day, or 0.7 BOT a month.
 
-To run it unattended on Windows, schedule `node notary.mjs daybreak tick` every 10 minutes with
-Task Scheduler, or leave `node notary.mjs daybreak run` open in a terminal. The web app recognises
+To run it unattended on Windows, schedule `scheduler/daybreak-tick.vbs` every 10 minutes with Task
+Scheduler (no window, output in `data/runner.log`), or leave `node notary.mjs daybreak run` open in a
+terminal. Only one can run at a time: a lock file makes the other exit with an error. The web app recognises
 Daybreak by address (`DAYBREAK_ADDRESS` in `web/src/lib/chain.ts`, or `VITE_DAYBREAK_ADDRESS`).
 
 ## Testing against a fork
